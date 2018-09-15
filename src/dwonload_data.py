@@ -78,6 +78,8 @@ def get_mirrors(infile, outfile):
         mirror_urls = [item.strip() for item in f_in.readlines()]
 
     for url_idx, url in enumerate(mirror_urls):
+        # if url != 'http://xssed.com/mirror/5120/':
+        #     continue
         req = request.Request(url)
 
         try:

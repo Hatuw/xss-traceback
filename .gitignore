@@ -1,3 +1,4 @@
 data/*
 
 !data/mirror_urls.txt
+!data/mirror_demo.csv
