@@ -70,9 +70,10 @@ def main():
     assert 'URL' in pruned_data.columns, 'data format error'
     pruned_urls = split_urls(pruned_data['URL'])
 
-    for i in range(50):
-        if len(pruned_urls[i]) < 30:
-            print(pruned_urls[i])
+    for i in range(5):
+        # if len(pruned_urls[i]) < 30:
+        print(pruned_data['URL'][i])
+        print(pruned_urls[i])
 
 
 if __name__ == '__main__':
