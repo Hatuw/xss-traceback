@@ -20,6 +20,7 @@ mylist = []
 def init_url():
     pruned_data = parse_data.load_data()
     assert 'URL' in pruned_data.columns, 'data format error'
+    pruned_data = excludenan(pruned_data)
     pruned_urls = parse_data.split_urls(pruned_data['URL'])
     return pruned_urls,pruned_data
 def set_union(a,b):
