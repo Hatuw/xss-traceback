@@ -3,13 +3,14 @@ import os
 from time import time
 import pandas as pd
 import multiprocessing
-import parse_data
+#import parse_data
 import numpy as np
 import csv
 import warnings
 warnings.filterwarnings(action='ignore', category=UserWarning, module='gensim')
 import gensim
-import sys
+import tensorflow as tf
+
 
 # set global vars
 DATA_DIR = '../data'
@@ -84,13 +85,15 @@ def readvocabulary():
         c.append(i.split(" ")[0])
     return  c
 
-def readpayload(flag = 0):
+def readpayload(maxlen=999999,flag = 0):
     # read urls & author from csv
     f = open('./xss_payload.csv', 'r',encoding='UTF-8')
     result = {}
     reader = csv.reader(f)
     author = []
     for item in enumerate(reader):
+        if(item[0]>=maxlen):
+            break
         tmp = item[1]
         if(len(tmp) == 0):
             print("something wrong......")
@@ -136,12 +139,21 @@ def save_data_txt(i,content):
     writer.writerow(content)
     f.close()
 
+def myone_hot(labels):
+    labels = set(labels)
+    print("labels len = " + str(len(labels)))
+    labels_key ={}
+    for i,value in enumerate(labels):
+        labels_key[value] = np.eye(len(labels))[i]
+    return labels_key
+
 def getVecsByWord2Vec(model, corpus,author,size,maxlen): #size是向量大小，maxlen是url长度
     # getVecsByWord2Vec and url -->size*(maxlen+1)
     # save to txt
     f = open("../data/fixed_data.csv", 'w',encoding='utf8',newline='')
     writer= csv.writer(f)
     print(len(corpus))
+    author_one_hot = myone_hot(author)
     for i in range(len(corpus)):
         url_encode = np.array([])
         j = 0
@@ -162,14 +174,50 @@ def getVecsByWord2Vec(model, corpus,author,size,maxlen): #size是向量大小，
                 print("getVecsByWord2Vec:somethin wrong...")
         if(i%1000 == 0):
             print(str(i)+" round")
-        url_encode = np.append(model[author[i]], url_encode, axis=0)
+        url_encode = np.append(author_one_hot[author[i]], url_encode, axis=0)
         #save_data_txt(i,url_encode)
+        print(len(author_one_hot[author[i]]))
         writer.writerow(url_encode)
     f.close()
 
+def load_fixed_data(maxlen = 9999):
+    # read fixed_data
+    f = open('../data/fixed_data.csv', 'r',encoding='UTF-8')
+    result = {}
+    reader = csv.reader(f)
+    for item in enumerate(reader):
+        if(item[0]>=maxlen):
+            break
 
+        tmp = item[1]
+        if(len(tmp) == 0):
+            print("something wrong......")
+        result[item[0]] = item[1]
+    f.close()
+    return  result
 
-# parse data
+def mytf_idf_lsi():
+    #now we can calculate the TF-IDF
+    # 注意这两个都是稀疏矩阵的表示形式......lsi_matrix = lsi_sparse_matrix.toarray() 可以用这个来进行转换：lsi_sparse_matrix
+    pruned_urls, author = readpayload(5000)
+    pruned_urls_values = list(pruned_urls.values())
+    dictionary = gensim.corpora.Dictionary(pruned_urls_values)
+    # dictionary.save('../data/xss_payload.dict')
+    # print(dictionary)
+    corpus = [dictionary.doc2bow(text) for text in pruned_urls_values]
+    tfidf = gensim.models.TfidfModel(corpus)
+    corpus_tfidf = tfidf[corpus]
+    lsi_model = gensim.models.LsiModel(corpus=corpus_tfidf,
+                                id2word=dictionary,
+                                num_topics=50)
+    corpus_lsi = [lsi_model[doc] for doc in corpus]
+    # print(corpus_lsi)
+    # for item in corpus_tfidf:
+    #     print(item)
+    # tfidf.save("../data/data.tfidf")
+    #tfidf = gensim.models.TfidfModel.load("data.tfidf")
+    return corpus_tfidf
+
 def main():
     # load data
     #step 1 分词并存储数据 :
@@ -200,9 +248,13 @@ def main():
         model = myword2vec_build(list(pruned_urls.values()))
 
     if (mode_num == 3):
-        pruned_urls, author = readpayload()
+        pruned_urls, author = readpayload(6000)
         model = myword2vec_load()
+        print(author)
+        print(type(author))
         getVecsByWord2Vec(model,pruned_urls,author,50,50)  #avge_len = 37
+    # #fixed_data = load_fixed_data(5000)
+    # corpus_tfidf = mytf_idf_lsi()
 
     end = time()
     print("Total procesing time: %d seconds" % (end - begin))
