@@ -11,6 +11,7 @@ warnings.filterwarnings(action='ignore', category=UserWarning, module='gensim')
 import gensim
 import tensorflow as tf
 
+#check
 
 # set global vars
 DATA_DIR = '../data'
