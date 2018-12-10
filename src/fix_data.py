@@ -153,7 +153,7 @@ def getVecsByWord2Vec(model, corpus,author,size,maxlen): #size是向量大小，
     f = open("../data/fixed_data.csv", 'w',encoding='utf8',newline='')
     writer= csv.writer(f)
     print(len(corpus))
-    author_one_hot = myone_hot(author)
+    # author_one_hot = myone_hot(author)
     for i in range(len(corpus)):
         url_encode = np.array([])
         j = 0
@@ -174,9 +174,9 @@ def getVecsByWord2Vec(model, corpus,author,size,maxlen): #size是向量大小，
                 print("getVecsByWord2Vec:somethin wrong...")
         if(i%1000 == 0):
             print(str(i)+" round")
-        url_encode = np.append(author_one_hot[author[i]], url_encode, axis=0)
+        url_encode = np.append(model[author[i]], url_encode, axis=0)
         #save_data_txt(i,url_encode)
-        print(len(author_one_hot[author[i]]))
+        # print(len(model[author[i]]))
         writer.writerow(url_encode)
     f.close()
 
@@ -248,7 +248,7 @@ def main():
         model = myword2vec_build(list(pruned_urls.values()))
 
     if (mode_num == 3):
-        pruned_urls, author = readpayload(6000)
+        pruned_urls, author = readpayload()
         model = myword2vec_load()
         print(author)
         print(type(author))
