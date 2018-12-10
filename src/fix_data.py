@@ -3,7 +3,7 @@ import os
 from time import time
 import pandas as pd
 import multiprocessing
-#import parse_data
+import parse_data
 import numpy as np
 import csv
 import warnings
@@ -23,15 +23,18 @@ def init_url():
     assert 'URL' in pruned_data.columns, 'data format error'
     pruned_data = excludenan(pruned_data)
     pruned_urls = parse_data.split_urls(pruned_data['URL'])
-    return pruned_urls,pruned_data
-def set_union(a,b):
+    return pruned_urls, pruned_data
+
+
+def set_union(a, b):
     c = list(set(a + b))
     return c
 
-def save_xss_data(pruned_urls,pruned_data):
+
+def save_xss_data(pruned_urls, pruned_data):
     # save data that have divided to xss_payload.csv
     global mylist
-    csvFile = open("xss_payload.csv", "w",encoding='utf8',newline='')
+    csvFile = open("xss_payload.csv", "w", encoding='utf8', newline='')
     writer = csv.writer(csvFile)
     for i,list_url in enumerate(pruned_urls):
         # writer.writerow("".join(pruned_data['Author'][i]))
@@ -64,16 +67,19 @@ def myword2vec_build(pruned_urls):
                                   binary=False)
     return model
 
+
 def myword2vec_load():
     #load the model
     model = gensim.models.Word2Vec.load('../data/word2vec_gensim')
     return model
 
+
 def excludenan(pruned_data):
     #print(np.any(pruned_data['URL'].isnull())) #是否存在nan
-    pruned_data = pruned_data.dropna(axis=0,how='any') #清洗数据
+    pruned_data = pruned_data.dropna(axis=0, how='any') #清洗数据
     pruned_data = pruned_data.reset_index(drop=True) #重新建立索引
     return pruned_data
+
 
 def readvocabulary():
     # read the vocabulary....
@@ -85,9 +91,10 @@ def readvocabulary():
         c.append(i.split(" ")[0])
     return  c
 
+
 def readpayload(maxlen=999999,flag = 0):
     # read urls & author from csv
-    f = open('./xss_payload.csv', 'r',encoding='UTF-8')
+    f = open('./xss_payload.csv', 'r', encoding='UTF-8')
     result = {}
     reader = csv.reader(f)
     author = []
@@ -103,9 +110,7 @@ def readpayload(maxlen=999999,flag = 0):
             result[item[0]] = tmp[:-1]
     # print(len(result))
     f.close()
-    return  result,author
-
-
+    return  result, author
 
 
 def calculate_len(pruned_urls):
@@ -118,10 +123,10 @@ def calculate_len(pruned_urls):
     for i in range(len(pruned_urls)):
         # print(type(len(pruned_urls[i])))
         if(len(pruned_urls[i]) > maxlen):
-            maxlen,max_index = max(len(pruned_urls[i]),maxlen),i
+            maxlen, max_index = max(len(pruned_urls[i]), maxlen), i
 
         if(len(pruned_urls[i]) < minlen):
-            minlen,min_index = min(len(pruned_urls[i]),99),i
+            minlen, min_index = min(len(pruned_urls[i]), 99), i
         total_len += len(pruned_urls[i])
     print("max_url_len = " + str(maxlen))
     print("max_url_index = " + str(max_index))
@@ -131,26 +136,29 @@ def calculate_len(pruned_urls):
     print(pruned_urls[min_index])
     print("avg_url_len = " + str(total_len/len(pruned_urls)))
 
-def save_data_txt(i,content):
+
+def save_data_txt(i, content):
     path = "../data/fix_data_2/"
     filename = "fixed_" + str(i) + '.txt'
-    f = open(path + filename, 'w',encoding='UTF-8')
+    f = open(path + filename, 'w', encoding='UTF-8')
     writer= csv.writer(f)
     writer.writerow(content)
     f.close()
+
 
 def myone_hot(labels):
     labels = set(labels)
     print("labels len = " + str(len(labels)))
     labels_key ={}
-    for i,value in enumerate(labels):
+    for i, value in enumerate(labels):
         labels_key[value] = np.eye(len(labels))[i]
     return labels_key
 
-def getVecsByWord2Vec(model, corpus,author,size,maxlen): #size是向量大小，maxlen是url长度
+
+def getVecsByWord2Vec(model, corpus, author, size, maxlen): #size是向量大小，maxlen是url长度
     # getVecsByWord2Vec and url -->size*(maxlen+1)
     # save to txt
-    f = open("../data/fixed_data.csv", 'w',encoding='utf8',newline='')
+    f = open("../data/fixed_data.csv", 'w', encoding='utf8', newline='')
     writer= csv.writer(f)
     print(len(corpus))
     # author_one_hot = myone_hot(author)
@@ -180,9 +188,10 @@ def getVecsByWord2Vec(model, corpus,author,size,maxlen): #size是向量大小，
         writer.writerow(url_encode)
     f.close()
 
+
 def load_fixed_data(maxlen = 9999):
     # read fixed_data
-    f = open('../data/fixed_data.csv', 'r',encoding='UTF-8')
+    f = open('../data/fixed_data.csv', 'r', encoding='UTF-8')
     result = {}
     reader = csv.reader(f)
     for item in enumerate(reader):
@@ -196,9 +205,12 @@ def load_fixed_data(maxlen = 9999):
     f.close()
     return  result
 
+
 def mytf_idf_lsi():
     #now we can calculate the TF-IDF
-    # 注意这两个都是稀疏矩阵的表示形式......lsi_matrix = lsi_sparse_matrix.toarray() 可以用这个来进行转换：lsi_sparse_matrix
+    # 注意这两个都是稀疏矩阵的表示形式......
+    # lsi_matrix = lsi_sparse_matrix.toarray()
+    # 可以用这个来进行转换：lsi_sparse_matrix
     pruned_urls, author = readpayload(5000)
     pruned_urls_values = list(pruned_urls.values())
     dictionary = gensim.corpora.Dictionary(pruned_urls_values)
@@ -217,6 +229,7 @@ def mytf_idf_lsi():
     # tfidf.save("../data/data.tfidf")
     #tfidf = gensim.models.TfidfModel.load("data.tfidf")
     return corpus_tfidf
+
 
 def main():
     # load data
@@ -252,12 +265,13 @@ def main():
         model = myword2vec_load()
         print(author)
         print(type(author))
-        getVecsByWord2Vec(model,pruned_urls,author,50,50)  #avge_len = 37
+        getVecsByWord2Vec(model, pruned_urls, author, 50, 50)  #avge_len = 37
     # #fixed_data = load_fixed_data(5000)
     # corpus_tfidf = mytf_idf_lsi()
 
     end = time()
-    print("Total procesing time: %d seconds" % (end - begin))
+    print("Total procesing time: {} seconds".format(end - begin))
+
 
 if __name__ == '__main__':
     main()

@@ -63,6 +63,7 @@ def split_urls(urls):
         return result_urls
 
 
+"""
 # parse data
 def main():
     # load data
@@ -78,3 +79,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+"""
