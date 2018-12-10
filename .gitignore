@@ -6,3 +6,4 @@ data/*
 !data/mirror_demo.csv
 
 .ipynb_checkpoints
+__pycache__
