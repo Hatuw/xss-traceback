@@ -161,11 +161,11 @@ def main():
     assert 'URL' in pruned_data.columns, '`URL` must in columns'
     pruned_urls = split_urls(pruned_data['URL'])
 
-    # trian word2vec
-    # encoded_urls, _ = train_d2v(pruned_urls,
-    #                             load=True,
-    #                             save_model=True,
-    #                             save_data=True)
+    #trian word2vec
+    encoded_urls, _ = train_d2v(pruned_urls,
+                                load=True,
+                                save_model=True,
+                                save_data=True)
 
     # parse author data
     assert 'Author' in pruned_data.columns, '`Author` must in columns'

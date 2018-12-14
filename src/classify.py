@@ -2,32 +2,21 @@
 import csv
 import numpy as np
 import tensorflow as tf
-from time import time
+import time
 import logging
-from sklearn import svm
-import fix_data
 import warnings
-
+import os
+import pandas as pd
 warnings.filterwarnings(action='ignore', category=UserWarning, module='gensim')
 
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s',
                     level=logging.INFO)
 
 
-def load_fixed_data(maxlen=99999):
-    # read fixed_data
-    with open('../data/fixed_data.csv', 'r', encoding='UTF-8') as f:
-        result = {}
-        reader = csv.reader(f)
-        for item in enumerate(reader):
-            if item[0] >= maxlen:
-                break
-
-            tmp = item[1]
-            if len(tmp) == 0:
-                print("something wrong......")
-            result[item[0]] = item[1]
-    return result
+# set global vars
+DATA_DIR = '../data'
+# mirror_urls_file = 'mirror_demo.csv'  # toy dataset
+mirror_urls_file = 'train.csv'  # train full dataset
 
 
 def np2list(array):
@@ -44,117 +33,78 @@ def normalization(x):
     x = list2np(x)
     return np2list(((x - min(x)) / (max(x) - min(x))))
 
+def myone_hot(labels):
+    labels = set(labels)
+    print("labels len = " + str(len(labels)))
+    labels_key = {}
+    for i, value in enumerate(labels):
+        labels_key[value] = i
+    return labels_key
 
 def load_data():
-    X = []
-    X_test = []
-    Y_test = []
-    Y = []
-    fixed_data_train = fix_data.load_fixed_data()
-    fixed_data_test = fix_data.load_fixed_data()
-    fixed_data_train = list(fixed_data_train.values())
-    fixed_data_test = list(fixed_data_test.values())
-    for i in range(len(fixed_data_train)-1000):
-        fixed_data_train_X = [float(x) for x in fixed_data_train[i][:2500]]
-        fixed_data_train_Y = [float(x) for x in fixed_data_train[i][2500:]]
-        norm_train_x = normalization(fixed_data_train_X)
-        norm_train_y = normalization(fixed_data_train_Y)
+    #load train_url data
+    global mirror_urls_file
+    file_path = os.path.join(DATA_DIR, mirror_urls_file)
+    assert os.path.exists(file_path), "file \"{}\" not exist".format(file_path)
+    data = pd.read_csv(file_path,header=None)
+    train_url_data = data.values
+    # normalization data
+    for i,url in enumerate(train_url_data):
+        train_url_data[i] = normalization(url)
+    # print(train_url_data[0])
 
-        X.append(norm_train_x)
-        Y.append(norm_train_y)
-    # print(len(fixed_data_train[0][2500:]))
-    # print(type(fixed_data_train[0][:2500][1]))
-    # print(type(fixed_data_train[0]))
-    for i in range(5000, 6000):
-        fixed_data_test_X = [float(x) for x in fixed_data_test[i][:2500]]
-        fixed_data_test_Y = [float(x) for x in fixed_data_train[i][2500:]]
-        # print(fixed_data_test_Y)
-        norm_test_x = normalization(fixed_data_test_X)
-        norm_test_y = normalization(fixed_data_test_Y)
-        X_test.append(norm_test_x)
-        Y_test.append(norm_test_y)
-    print(len(X))
-    print(len(Y))
-    return X, Y, X_test, Y_test
+    # load train_labels_data of labels
+    mirror_urls_file = 'labels.csv'
+    file_path = os.path.join(DATA_DIR, mirror_urls_file)
+    assert os.path.exists(file_path), "file \"{}\" not exist".format(file_path)
+    with open(file_path, 'r', encoding='UTF-8') as f:
+        train_author_data = []
+        reader = csv.reader(f)
+        for item in enumerate(reader):
+            tmp = item[1]
+            train_author_data.append(int(tmp[0]))
+        # print(type(train_author_data[0]))
+        # print(len(train_author_data))
 
-# def add_layer(inputs, in_size, out_size,
-#               activation_function=None, norm=False):
-#     # add one more layer and return the output of this layer
-#     Weights = tf.Variable(tf.random_normal([in_size, out_size]))
-#     biases = tf.Variable(tf.zeros([1, out_size]) + 0.1,)
-#     Wx_plus_b = tf.matmul(inputs, Weights) + biases
-#     if activation_function is None:
-#         outputs = Wx_plus_b
-#     else:
-#         outputs = activation_function(Wx_plus_b,)
-#     return outputs, Weights, biases, Wx_plus_b
+    # load train_labels_data of labels_map
+    mirror_urls_file = 'labels_map.csv'
+    file_path = os.path.join(DATA_DIR, mirror_urls_file)
+    assert os.path.exists(file_path), "file \"{}\" not exist".format(file_path)
+    with open(file_path, 'r', encoding='UTF-8') as f:
+        train_author_map_data = []
+        reader = csv.reader(f)
+        for item in enumerate(reader):
+            tmp = item[1]
+            train_author_map_data.append(tmp[0])
+        # print(train_author_map_data[1])
+        # print(len(train_author_map_data))
+    return train_url_data,train_author_data,train_author_map_data
+
+def save_data(time,learning_rate,training_epochs,accuracy):
+    global mirror_urls_file
+    mirror_urls_file = 'experimental_data.csv'
+    file_path = os.path.join(DATA_DIR, mirror_urls_file)
+    with open(file_path, 'a', encoding='UTF-8',newline="") as f:
+        writer = csv.writer(f)
+        data = np.array([time,learning_rate,training_epochs,accuracy])
+        # f.write(data)
+        writer.writerow(data)
+        f.close()
 
 
-def add_layer(inputs, in_size, out_size, activation_function=None, norm=False):
-    # weights and biases (bad initialization for this case)
-    Weights = tf.Variable(tf.random_normal(
-        [in_size, out_size], mean=0., stddev=1.))
-    biases = tf.Variable(tf.zeros([1, out_size]) + 0.1)
-
-    # fully connected product
+def add_layer(inputs, in_size, out_size,
+              activation_function=None):
+    # add one more layer and return the output of this layer
+    Weights = tf.Variable(tf.random_normal([in_size, out_size]))
+    biases = tf.Variable(tf.zeros([1, out_size]) + 0.1,)
     Wx_plus_b = tf.matmul(inputs, Weights) + biases
-
-    # normalize fully connected product
-    if norm:
-        # Batch Normalize
-        # axes 这批数据的哪几个维度上求均值与方差
-        # the dimension you wanna normalize, axes[0] for batch只要0维度上就OK
-        # for image 三个维度上求均值方差,
-        # you wanna do [0, 1, 2] for [batch, height, width] but not channel
-        fc_mean, fc_var = tf.nn.moments(Wx_plus_b, axes=[0, 1, 2])
-
-        # # 计算Wx_plus_b 的均值与方差,其中axis = [0] 表示想要标准化的维度
-        # img_shape = [128, 32, 32, 64]
-        # Wx_plus_b = tf.Variable(tf.random_normal(img_shape))
-        # axis = list(range(len(img_shape) - 1))  # [0,1,2]
-        # wb_mean, wb_var = tf.nn.moments(Wx_plus_b, axis)
-
-        scale = tf.Variable(tf.ones([out_size]))
-        shift = tf.Variable(tf.zeros([out_size]))
-        epsilon = 0.001
-        # 应用均值和变量的移动平均值,BN在神经网络进行training和testing的时候，所用的mean、variance是不一样的
-        ema = tf.train.ExponentialMovingAverage(decay=0.5)
-
-        def mean_var_with_update():
-            ema_apply_op = ema.apply([fc_mean, fc_var])
-            with tf.control_dependencies([ema_apply_op]):
-                return tf.identity(fc_mean), tf.identity(fc_var)
-
-        mean, var = mean_var_with_update()
-
-        Wx_plus_b = tf.nn.batch_normalization(
-            Wx_plus_b, mean, var, shift, scale, epsilon)
-        # similar with this two steps:
-        # Wx_plus_b = (Wx_plus_b - fc_mean) / tf.sqrt(fc_var + 0.001)
-        # scale为扩大的参数,shift为平移的参数
-        # Wx_plus_b = Wx_plus_b * scale + shift
-
-    # activation
     if activation_function is None:
         outputs = Wx_plus_b
     else:
-        outputs = activation_function(Wx_plus_b)
+        outputs = activation_function(Wx_plus_b,)
+    return outputs, Weights, biases,Wx_plus_b,outputs
 
-    return outputs, Weights, biases
 
-
-# def compute_accuracy(v_xs, v_ys):
-#     global prediction
-#     y_pre = sess.run(prediction, feed_dict={xs: v_xs})
-#     # print(y_pre)
-#     # print(v_ys[0])
-#     #     # print(type(v_ys[0]))
-#     #     # print(y_pre)
-#     #     # print(type(y_pre[0]))
-#     correct_prediction = tf.equal(tf.argmax(y_pre,1), tf.argmax(v_ys,1))
-#     accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-#     result = sess.run(accuracy, feed_dict={xs: v_xs, ys: v_ys})
-#     return result
 def compute_accuracy(v_xs, v_ys):
     global prediction
     y_pre = sess.run(prediction, feed_dict={xs: v_xs})
@@ -163,7 +113,11 @@ def compute_accuracy(v_xs, v_ys):
     # print(sess.run(correct_prediction, feed_dict={xs: v_xs, ys: v_ys}))
     accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
     result = sess.run(accuracy, feed_dict={xs: v_xs, ys: v_ys})
-    return result
+    y_pre = np2list(y_pre)
+    y_pre_max_index = sess.run(tf.argmax(y_pre, 1), feed_dict={xs: v_xs})
+    v_ys_max_index = sess.run(tf.argmax(v_ys, 1), feed_dict={ys: v_ys})
+    # correct_prediction = np2list(correct_prediction)
+    return result,y_pre_max_index,v_ys_max_index,y_pre.index(max(y_pre)),y_pre
 
 
 def next_batch(train_data, train_target, batch_size):
@@ -172,63 +126,105 @@ def next_batch(train_data, train_target, batch_size):
     batch_data = []
     batch_target = []
     # batch_size-->number of every time you get the length of data
-    for i in range(0, batch_size):
+    for i in range(current_batch*batch_size, current_batch*batch_size + batch_size):
         batch_data.append(train_data[index[i]])
         batch_target.append(train_target[index[i]])
     return batch_data, batch_target
 
+def myone_hot_author(batch_ys):
+    for i, author_index in enumerate(batch_ys):
+        new_batch_ys_tmp = np.zeros(2626)
+        new_batch_ys_tmp[author_index] = 1
+        new_batch_ys_tmp = new_batch_ys_tmp.tolist()
+        batch_ys[i] = new_batch_ys_tmp
+    return batch_ys
 
-# define placeholder for inputs to network
-xs = tf.placeholder(tf.float32, [None, 2500])  # 50*50
-ys = tf.placeholder(tf.float32, [None, 50])
+def main():
+    global sess
+    global xs
+    global ys
+    global prediction
+    #learning rate
+    learning_rate = 0.01
+    print("begin classify......")
+    begin = time.time()
+    train_url_data, train_author_data, train_author_map_data = load_data()
+    # print(train_author_data)
+    # define placeholder for inputs to network
+    xs = tf.placeholder(tf.float32, [None, 100])  # 50*50
+    ys = tf.placeholder(tf.float32, [None, 2626])
 
-# add output layer
-fcn, _, _ = add_layer(xs, 2500, 2500, norm=False)
-prediction, Weights, biases = add_layer(
-    fcn, 2500, 50, activation_function=tf.nn.softmax, norm=False)
+    # add output layer
+    fcn1, _, _,_,_ = add_layer(xs, 100, 1000, activation_function=tf.nn.softmax)
+    fcn2, _, _,_,_ = add_layer(fcn1, 1000, 2000, activation_function=tf.nn.softmax)
+    fcn3, _, _,_,_ = add_layer(fcn2, 2000, 2500, activation_function=tf.nn.softmax)
+    prediction, Weights, biases , Wx_plus_b ,outputs= add_layer(
+        fcn3, 2500, 2626, activation_function=tf.nn.softmax)
+
+    # the error between prediction and real data
+    cross_entropy = tf.reduce_mean(-tf.reduce_sum(ys * tf.log(prediction),
+                                                  reduction_indices=[1]))  # loss
+    train_step = tf.train.GradientDescentOptimizer(learning_rate).minimize(cross_entropy)
 
 
-# # the error between prediction and real data
-# cross_entropy = tf.reduce_mean(tf.reduce_sum(ys - prediction,
-#                                               reduction_indices=[1]))  # loss
-# train_step = tf.train.GradientDescentOptimizer(0.5).minimize(cross_entropy)
-cross_entropy = -tf.reduce_sum(ys * tf.log(prediction * 1e-10))
-# the error between prediction and real data
-# cross_entropy = tf.reduce_mean(-tf.reduce_sum(ys * tf.log(prediction),
-#                                               reduction_indices=[1]))  # loss
-train_step = tf.train.GradientDescentOptimizer(0.1).minimize(cross_entropy)
+    sess = tf.Session()
+    # important step
+    # tf.initialize_all_variables() no long valid from
+    init = tf.global_variables_initializer()
+    sess.run(init)
 
-print("begin classify......")
-begin = time()
+    training_epochs = 1000
+    batch_size = 5000
+    for j in range(training_epochs):
+        total_batch = int(len(train_url_data) / batch_size)
+        global current_batch
+        for current_batch in range(total_batch):
+            batch_xs, batch_ys = next_batch(train_url_data, train_author_data, batch_size)
+            # print(len(batch_xs[1]))
+            # print(len(batch_ys[1]))
+            # print(batch_ys)
 
-sess = tf.Session()
-# important step
-# tf.initialize_all_variables() no long valid from
-init = tf.global_variables_initializer()
-sess.run(init)
-X, Y, X_test, Y_test = load_data()
-print(np.var(X[1]))
-print(len(X))
-for i in range(2000):
-    batch_xs, batch_ys = next_batch(X, Y, 8000)
-    # print(len(batch_xs[1]))
-    # print(len(batch_ys[1]))
-    sess.run(train_step, feed_dict={xs: batch_xs, ys: batch_ys})
-    # print(sess.run(Weights, feed_dict={xs: batch_xs, ys: batch_ys}))
-    # print(sess.run(biases, feed_dict={xs: batch_xs, ys: batch_ys}))
-    # print(sess.run(X[1], feed_dict={xs: batch_xs, ys: batch_ys}))
-    # print(sess.run(cross_entropy, feed_dict={xs: batch_xs, ys: batch_ys}))
+            #one-hot anthor_data before train
+            batch_ys = myone_hot_author(batch_ys)
+            # print(len(batch_ys))
 
-    test_xs, test_ys = next_batch(X, Y, 5000)
-    if i % 50 == 0:
-        print("round " + str(i))
-        print(sess.run(prediction, feed_dict={xs: batch_xs, ys: batch_ys}))
-        print(sess.run(cross_entropy, feed_dict={xs: batch_xs, ys: batch_ys}))
-        print(compute_accuracy(X_test, Y_test))
+            sess.run(train_step, feed_dict={xs: batch_xs, ys: batch_ys})
 
-end = time()
-print("Total procesing time: {} seconds".format(end - begin))
+            # debug code
+            # print("===================================================")
+            # # print(sess.run(Weights, feed_dict={xs: batch_xs, ys: batch_ys}))
+            # # print(sess.run(biases, feed_dict={xs: batch_xs, ys: batch_ys}))
+            # print(sess.run(Wx_plus_b, feed_dict={xs: batch_xs, ys: batch_ys}))
+            # print(sess.run(outputs, feed_dict={xs: batch_xs, ys: batch_ys}))
+            # print(len(sess.run(Wx_plus_b, feed_dict={xs: batch_xs, ys: batch_ys})))
+            # print(len(sess.run(outputs, feed_dict={xs: batch_xs, ys: batch_ys})))
+            # print("===================================================")
+            # print(sess.run(X[1], feed_dict={xs: batch_xs, ys: batch_ys}))
+            # print(sess.run(cross_entropy, feed_dict={xs: batch_xs, ys: batch_ys}))
 
-#
-# if __name__ == '__main__':
-#     main()
+        test_xs, test_ys = next_batch(train_url_data, train_author_data, batch_size)
+        test_ys = myone_hot_author(test_ys)
+        if j % 1 == 0:
+            print("round " + str(j))
+            # print(len(sess.run(prediction[1], feed_dict={xs: batch_xs, ys: batch_ys})))
+            cross_entropy_value = sess.run(cross_entropy, feed_dict={xs: batch_xs, ys: batch_ys})
+            print('Loss at step %d: %f' % (j, cross_entropy_value))
+            accuracy,prediction_index1,prediction_index2,y_pre_max,y_pre = compute_accuracy(test_xs, test_ys)
+            print('Validation accuracy: %.3f%%' % (accuracy*100))
+            # arr = np.arange(2626)
+            # for i in range(batch_size):
+            # print(len(prediction_index1))
+            print(prediction_index1)
+            print(prediction_index2)
+            # print(y_pre_max)
+            # print(len(y_pre))
+            # save experimental data
+            save_data(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),learning_rate,training_epochs,accuracy)
+
+
+    end = time.time()
+    print("Total procesing time: {} seconds".format(end - begin))
+
+
+if __name__ == '__main__':
+    main()
