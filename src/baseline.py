@@ -48,6 +48,6 @@ model.fit(
     x_data,
     y_data,
     epochs=20,
-    batch_size=1024  # 128
+    batch_size=128
 )
-score = model.evaluate(x_data, y_data, batch_size=1024)
+score = model.evaluate(x_data, y_data, batch_size=128)
