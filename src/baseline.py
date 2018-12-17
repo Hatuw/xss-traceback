@@ -22,8 +22,22 @@ y_data = keras.utils.to_categorical(
     num_classes=y_max+1
 )
 
+# shuffle data and split training set & testing set
+data_m = y_data.shape[0]
+index = np.arange(data_m)
+np.random.shuffle(index)
+train_x = x_data[index[:int(data_m*0.8)]]
+train_y = y_data[index[:int(data_m*0.8)]]
+test_x = x_data[index[int(data_m*0.8):]]
+test_y = y_data[index[int(data_m*0.8):]]
+
 # create model
 model = Sequential()
+model.add(Dense(
+    1000,
+    activation='relu',
+    input_dim=x_data.shape[-1]
+))
 model.add(Dense(
     2000,
     activation='relu',
@@ -33,21 +47,26 @@ model.add(Dense(
 model.add(Dense(
     2000, activation='relu'
 ))
+model.add(Dense(
+    1000,
+    activation='relu',
+    input_dim=x_data.shape[-1]
+))
 # model.add(Dropout(0.5))
 model.add(Dense(
     y_data.shape[-1],
     activation='softmax'
 ))
 
-sgd = SGD(lr=0.1, decay=1e-6, momentum=0.9, nesterov=True)
+sgd = SGD(lr=0.3, decay=1e-6, momentum=0.9, nesterov=True)
 model.compile(loss='categorical_crossentropy',
               optimizer=sgd,
               metrics=['accuracy'])
 
 model.fit(
-    x_data,
-    y_data,
+    train_x,
+    train_y,
     epochs=20,
     batch_size=128
 )
-score = model.evaluate(x_data, y_data, batch_size=128)
+score = model.evaluate(test_x, test_y, batch_size=128)
