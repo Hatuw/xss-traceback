@@ -41,21 +41,24 @@ model.add(Dense(
 model.add(Dense(
     2000,
     activation='relu',
-    input_dim=x_data.shape[-1]
+    input_dim=1000
 ))
 # model.add(Dropout(0.5))
 model.add(Dense(
-    2000, activation='relu'
+    2000,
+    activation='relu',
+    input_dim=2000
 ))
 model.add(Dense(
     1000,
     activation='relu',
-    input_dim=x_data.shape[-1]
+    input_dim=2000
 ))
 # model.add(Dropout(0.5))
 model.add(Dense(
     y_data.shape[-1],
-    activation='softmax'
+    activation='softmax',
+    input_dim=1000
 ))
 
 sgd = SGD(lr=0.3, decay=1e-6, momentum=0.9, nesterov=True)
