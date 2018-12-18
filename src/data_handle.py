@@ -1,17 +1,20 @@
 # coding: utf-8
-import time
 import logging
-import warnings
 import os
-import gensim
-import pandas as pd
-import numpy as np
 import re
+import time
+import warnings
+
+import gensim
+import numpy as np
+import pandas as pd
 from sklearn.preprocessing import LabelEncoder
 warnings.filterwarnings(action='ignore', category=UserWarning, module='gensim')
 
-logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s',
-                    level=logging.INFO)
+logging.basicConfig(
+    format='%(asctime)s : %(levelname)s : %(message)s',
+    level=logging.INFO,
+)
 
 
 # set global vars
@@ -19,9 +22,12 @@ DATA_DIR = '../data'
 # mirror_urls_file = 'mirror_demo.csv'  # toy dataset
 mirror_urls_file = 'xss.csv'  # full dataset
 less_data = 10
+
+
 def list2np(x):
     array = np.array(x)
     return array
+
 
 def load_data():
     """
@@ -57,10 +63,13 @@ def load_data():
 def get_one_author_data():
     # calculate the number of author who only have one payload.
     dict = {}  # vocabulary
-    DATA_DIR = "../data/data_v1"
-    one_dict = [] # one labels_map  {4: '-tmh-', 5: '..', 9: '04hrb', 10: '0bj3ctiv3@gmail.com', 11: '0bsolet', 12: '0c001', 15: '0rijin5l',....}
-    index = {} # all labels
-    result = {} # one labels index in range(45813)
+    # DATA_DIR = "../data/data_v1"
+    # one labels_map  {4: '-tmh-', 5: '..', 9: '04hrb',
+    #  10: '0bj3ctiv3@gmail.com',
+    #  11: '0bsolet', 12: '0c001', 15: '0rijin5l',....}
+    one_dict = []
+    # index = {}  # all labels
+    # result = {}  # one labels index in range(45813)
 
     data = open("../data/vocabulary", 'r', encoding='UTF-8')
     for i in range(64461):
@@ -83,23 +92,23 @@ def get_one_author_data():
     sum = 0
     new_data_split_labels_map = []
     # print(data_split_labels_map)
-    for word in data_split_labels_map:  #['-', '-Chosen-', '-[SiLeNtp0is0n]-', '-quik', '-tmh-',...]
-        if (int(dict[word]) < less_data):                                 # here can change the number of the least data ...
+    # ['-', '-Chosen-', '-[SiLeNtp0is0n]-', '-quik', '-tmh-',...]
+    for word in data_split_labels_map:
+        # here can change the number of the least data ...
+        if (int(dict[word]) < less_data):
             sum = sum + 1
             one_dict.append(word)
         else:
             new_data_split_labels_map.append(word)
     new_data_split_labels_map.append('myclassfiy')
-    print(len(one_dict))  #2058
-    print(len(new_data_split_labels_map))  #569
+    print(len(one_dict))  # 2058
+    print(len(new_data_split_labels_map))  # 569
     # print(data_split_labels.reset_index(drop=True))
     writedata("new_labels_map.csv", new_data_split_labels_map)
 
-
-
     # debug
     print("===============================")
-    print(sum)  #2058
+    print(sum)  # 2058
     # print(len(one_dict))
     # print(max(list_one))
     # print(list(list_one))
@@ -110,10 +119,10 @@ def get_one_author_data():
     # print(pruned_data['Author'])
     pruned_author = pruned_data['Author']
     sum = 0
-    for i,author in enumerate(pruned_author):
+    for i, author in enumerate(pruned_author):
         if(author not in new_data_split_labels_map):
             sum = sum + 1
-            pruned_data.iloc[i,0] = 'myclassfiy'
+            pruned_data.iloc[i, 0] = 'myclassfiy'
             # print(i)
             # print(pruned_data['Author'][i])
     print(type(pruned_data['Author']))
@@ -124,6 +133,7 @@ def get_one_author_data():
     pruned_data_v1 = pruned_data.loc[:, ['Author', 'URL']]
     pruned_data_v1.to_csv("../data/data_v1/xss.csv", index=False, sep=',')
     return pruned_data_v1
+
 
 def split_urls(urls):
     """
@@ -236,7 +246,7 @@ def encode_authors(authors, save_data=False):
     return encoded_data
 
 
-def writedata(file_path_,data_split_labels):
+def writedata(file_path_, data_split_labels):
     global DATA_DIR
     DATA_DIR = "../data/data_v1"
     mirror_urls_file = file_path_
@@ -246,13 +256,14 @@ def writedata(file_path_,data_split_labels):
         f.write(word + "\n")
     f.close()
 
+
 def main():
     global sess
     global xs
     global ys
     global prediction
-    #learning rate
-    learning_rate = 0.01
+    # learning rate
+    # learning_rate = 0.01
     print("begin classify......")
     begin = time.time()
 
@@ -267,10 +278,12 @@ def main():
     pruned_urls = split_urls(pruned_data['URL'])
 
     # trian word2vec
-    encoded_urls, _ = train_d2v(pruned_urls,
-                                load=True,
-                                save_model=True,
-                                save_data=True)
+    encoded_urls, _ = train_d2v(
+        pruned_urls,
+        load=True,
+        save_model=True,
+        save_data=True,
+    )
 
     # parse author data
     assert 'Author' in pruned_data.columns, '`Author` must in columns'
@@ -278,7 +291,6 @@ def main():
 
     # del unused vars
     del encoded_urls, authors
-
 
     end = time.time()
     print("Total procesing time: {} seconds".format(end - begin))
