@@ -8,19 +8,30 @@ from keras.optimizers import SGD
 
 # set global vars
 WORKING_DIR = os.path.split(os.path.realpath(__file__))[0]
-DATA_DIR = os.path.join(WORKING_DIR, '../data')
+DATA_DIR = os.path.join(WORKING_DIR, '../data/data_v1')
 DATA_X_FILE = os.path.join(DATA_DIR, 'train.csv')
 DATA_Y_FILE = os.path.join(DATA_DIR, 'labels.csv')
+HIS_FILE = os.path.join(DATA_DIR, 'history.csv')
 
 # load training data
 x_data = np.loadtxt(DATA_X_FILE, dtype=float, delimiter=',')
 
 pre_y_data = np.loadtxt(DATA_Y_FILE, dtype=int)
 y_max = pre_y_data.max()
-y_data = keras.utils.to_categorical(
+y_data = keras.utils.to_categorical(              # one-hot
     pre_y_data,
     num_classes=y_max+1
 )
+
+# # debug
+print("======================================")
+# print(len(set(pre_y_data)))
+# print(type(pre_y_data))
+print(y_max)
+print(y_data.shape[0])
+# print(y_data.shape[-1])
+print("======================================")
+
 
 # shuffle data and split training set & testing set
 data_m = y_data.shape[0]
@@ -66,10 +77,13 @@ model.compile(loss='categorical_crossentropy',
               optimizer=sgd,
               metrics=['accuracy'])
 
-model.fit(
+hist = model.fit(
     train_x,
     train_y,
     epochs=20,
     batch_size=128
 )
 score = model.evaluate(test_x, test_y, batch_size=128)
+print(hist)
+with open(HIS_FILE,'a', encoding='UTF-8',newline="") as f:
+    f.write(str(hist.history))

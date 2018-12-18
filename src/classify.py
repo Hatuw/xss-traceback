@@ -48,6 +48,7 @@ def load_data():
     assert os.path.exists(file_path), "file \"{}\" not exist".format(file_path)
     data = pd.read_csv(file_path,header=None)
     train_url_data = data.values
+    print(train_url_data[1])
     # normalization data
     for i,url in enumerate(train_url_data):
         train_url_data[i] = normalization(url)
@@ -139,6 +140,48 @@ def myone_hot_author(batch_ys):
         batch_ys[i] = new_batch_ys_tmp
     return batch_ys
 
+def get_one_author_data():
+    # calculate the number of author who only have one payload.
+    dict = {}  # vocabulary
+    one_dict = {} # one labels_map  {4: '-tmh-', 5: '..', 9: '04hrb', 10: '0bj3ctiv3@gmail.com', 11: '0bsolet', 12: '0c001', 15: '0rijin5l',....}
+    index = {} # all labels
+    result = {} # one labels index in range(45813)
+
+    data = open("../data/vocabulary", 'r', encoding='UTF-8')
+    for i in range(64461):
+        word = data.readline()
+        if (len(word.split(" ")) == 2):
+            dict[str(word.split(" ")[0])] = word.split(" ")[1][:-1]
+        else:
+            continue
+
+    data = open("../data/labels_map.csv", 'r', encoding='UTF-8')
+    big_data = data.read()
+    data_split_labels_map = big_data.split("\n")
+    del data_split_labels_map[-1]  #最后一行是回车
+    sum = 0
+    # print(data_split_labels_map)
+    for i,word in enumerate(data_split_labels_map):  #['-', '-Chosen-', '-[SiLeNtp0is0n]-', '-quik', '-tmh-',...]
+        if (dict[word] == '1'):                      #{'-tmh-': 4, '..': 5, '04hrb': 9, '0bj3ctiv3@gmail.com': 10, '0bsolet': 11, '0c001': 12, '0rijin5l': 15, '0ssie': 17, .....}
+            sum = sum + 1
+            one_dict[word] = i
+    # print(one_dict)
+            # print("win...")
+
+    data = open("../data/labels.csv", 'r', encoding='UTF-8')
+    labels_data = data.read()
+    data_split_labels = labels_data.split("\n")
+    del data_split_labels[-1]  #最后一行是回车
+    # print(data_split_labels)
+    for i, word in enumerate(data_split_labels):  #['1361', '2298', '162', '997', '558', '8', '285', '285', '1045', '893', '152',....]
+        index[word] = i                           #{'1361': 0, '2298': 1, '162': 2, '997': 3, '558': 1058, '8': 5635, '285': 7, '1045': 8, '893': 9,....]
+    # print(index)
+    for word in one_dict:
+        # print(one_dict[word])
+        result[word] = index[str(one_dict[word])]
+        # print(result)                           #{'-tmh-': 23737, '..': 2810, '04hrb': 387, '0bj3ctiv3@gmail.com': 1887,......}    index从0开始
+
+    return result
 def main():
     global sess
     global xs
@@ -148,6 +191,20 @@ def main():
     learning_rate = 0.01
     print("begin classify......")
     begin = time.time()
+    one_dict = get_one_author_data()  #dict --> dict{ author:index }
+    print(one_dict)
+    train_url_data, train_author_data, train_author_map_data = load_data()
+    train_url_data_one = []
+    train_author_data_one = []
+    print(len(train_author_data))
+    for i,key in enumerate(one_dict):
+        print(i)
+        print(type(one_dict[key]))
+        train_url_data_one[i] = train_url_data[one_dict[key]]
+        train_author_data_one[i] = train_author_data[one_dict[key]]
+    # print(train_url_data_one[1])
+    # print(train_author_data_one[1])
+    '''
     train_url_data, train_author_data, train_author_map_data = load_data()
     # print(train_author_data)
     # define placeholder for inputs to network
@@ -158,6 +215,11 @@ def main():
     fcn1, _, _,_,_ = add_layer(xs, 100, 1000, activation_function=tf.nn.softmax)
     fcn2, _, _,_,_ = add_layer(fcn1, 1000, 2000, activation_function=tf.nn.softmax)
     fcn3, _, _,_,_ = add_layer(fcn2, 2000, 2500, activation_function=tf.nn.softmax)
+
+    # # normalization data
+    # for i,url in enumerate(fcn3):
+    #     fcn3[i] = normalization(url)
+
     prediction, Weights, biases , Wx_plus_b ,outputs= add_layer(
         fcn3, 2500, 2626, activation_function=tf.nn.softmax)
 
@@ -167,6 +229,7 @@ def main():
     train_step = tf.train.GradientDescentOptimizer(learning_rate).minimize(cross_entropy)
 
 
+    # sess = tf.Session(config=tf.ConfigProto(log_device_placement=True))
     sess = tf.Session()
     # important step
     # tf.initialize_all_variables() no long valid from
@@ -192,9 +255,10 @@ def main():
 
             # debug code
             # print("===================================================")
-            # # print(sess.run(Weights, feed_dict={xs: batch_xs, ys: batch_ys}))
-            # # print(sess.run(biases, feed_dict={xs: batch_xs, ys: batch_ys}))
+            # print(sess.run(Weights, feed_dict={xs: batch_xs, ys: batch_ys}))
+            # print(sess.run(biases, feed_dict={xs: batch_xs, ys: batch_ys}))
             # print(sess.run(Wx_plus_b, feed_dict={xs: batch_xs, ys: batch_ys}))
+            # print(sess.run(prediction[current_batch], feed_dict={xs: batch_xs, ys: batch_ys}))
             # print(sess.run(outputs, feed_dict={xs: batch_xs, ys: batch_ys}))
             # print(len(sess.run(Wx_plus_b, feed_dict={xs: batch_xs, ys: batch_ys})))
             # print(len(sess.run(outputs, feed_dict={xs: batch_xs, ys: batch_ys})))
@@ -206,7 +270,6 @@ def main():
         test_ys = myone_hot_author(test_ys)
         if j % 1 == 0:
             print("round " + str(j))
-            # print(len(sess.run(prediction[1], feed_dict={xs: batch_xs, ys: batch_ys})))
             cross_entropy_value = sess.run(cross_entropy, feed_dict={xs: batch_xs, ys: batch_ys})
             print('Loss at step %d: %f' % (j, cross_entropy_value))
             accuracy,prediction_index1,prediction_index2,y_pre_max,y_pre = compute_accuracy(test_xs, test_ys)
@@ -217,10 +280,11 @@ def main():
             print(prediction_index1)
             print(prediction_index2)
             # print(y_pre_max)
-            # print(len(y_pre))
+            print(len(y_pre))
+            print(len(test_ys))
             # save experimental data
             save_data(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),learning_rate,training_epochs,accuracy)
-
+    '''
 
     end = time.time()
     print("Total procesing time: {} seconds".format(end - begin))
@@ -228,3 +292,25 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+'''
+# calculate the number of author who only have one payload.
+dict = {}
+data = open("data/vocabulary", 'r', encoding='UTF-8')
+for i in range(64461):
+    word = data.readline()
+    if(len(word.split(" ")) == 2):
+        dict[str(word.split(" ")[0])] = word.split(" ")[1][:-1]
+    else:
+        continue
+
+data = open("xss_traceback/xss-traceback/data/labels_map.csv", 'r', encoding='UTF-8')
+big_data = data.read()       
+data_split = big_data.split("\n")
+del data_split[-1]
+sum = 0
+for word in data_split:
+    if(dict[word] == '1'):
+        sum = sum + 1 
+        print("win...")
+'''
