@@ -91,7 +91,7 @@ model.compile(
 hist = model.fit(
     train_x,
     train_y,
-    epochs=30,
+    epochs=2,
     batch_size=128,
 )
 loss, accuracy = model.evaluate(test_x, test_y, batch_size=128)
@@ -105,22 +105,17 @@ print(hist.history.keys())
 
 fig = plt.figure()
 plt.plot(hist.history['acc'])
-# plt.plot(hist.history['val_acc'])
-plt.title('model accuracy')
-plt.ylabel('accuracy')
+plt.title('model accuracy-loss')
+plt.ylabel('value')
 plt.xlabel('epoch')
-plt.legend(['train', 'test'], loc='upper left')
+plt.tight_layout()
 plt.plot(hist.history['loss'])
-# plt.plot(hist.history['val_loss'])
-plt.title('model loss')
-plt.ylabel('loss')
-plt.xlabel('epoch')
-plt.legend(['train', 'test'], loc='lower left')
-
+plt.legend(['acc', 'loss'], loc='upper left')
+plt.tight_layout()
+plt.show()
 # save result png
-now_name = time.strftime("%Y-%m-%d%H%M%S", time.localtime()) + ".png"
+now_name = time.strftime("%Y-%m-%d%H%M%S", time.localtime()) + "_acc-loss.png"
 Result_png = os.path.join(Result_dir, now_name)
-print(Result_png)
 fig.savefig(Result_png)
 
 # save
