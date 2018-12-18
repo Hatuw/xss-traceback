@@ -18,7 +18,7 @@ logging.basicConfig(
 
 
 # set global vars
-DATA_DIR = '../data'
+data_dir = '../data'
 # mirror_urls_file = 'mirror_demo.csv'  # toy dataset
 mirror_urls_file = 'xss.csv'  # full dataset
 less_data = 10
@@ -35,8 +35,9 @@ def load_data():
         @return:
             pruned_data: <pandas.DataFrame>
     """
-    DATA_DIR = '../data'
-    file_path = os.path.join(DATA_DIR, mirror_urls_file)
+    global pruned_data
+    file_path = os.path.join(data_dir, mirror_urls_file)
+    print(file_path)
     assert os.path.exists(file_path), "file \"{}\" not exist".format(file_path)
     data = pd.read_csv(file_path)
     # get data columns
@@ -62,8 +63,8 @@ def load_data():
 
 def get_one_author_data():
     # calculate the number of author who only have one payload.
-    dict = {}  # vocabulary
-    # DATA_DIR = "../data/data_v1"
+    word_ict = {}  # vocabulary
+    # data_dir = "../data/data_v1"
     # one labels_map  {4: '-tmh-', 5: '..', 9: '04hrb',
     #  10: '0bj3ctiv3@gmail.com',
     #  11: '0bsolet', 12: '0c001', 15: '0rijin5l',....}
@@ -74,8 +75,8 @@ def get_one_author_data():
     data = open("../data/vocabulary", 'r', encoding='UTF-8')
     for i in range(64461):
         word = data.readline()
-        if (len(word.split(" ")) == 2):
-            dict[str(word.split(" ")[0])] = word.split(" ")[1][:-1]
+        if len(word.split(" ")) == 2:
+            word_ict[str(word.split(" ")[0])] = word.split(" ")[1][:-1]
         else:
             continue
 
@@ -89,14 +90,14 @@ def get_one_author_data():
     data_split_labels_map = labels_map_data.split("\n")
     del data_split_labels_map[-1]  # 最后一行是回车
 
-    sum = 0
+    sum_flag = 0
     new_data_split_labels_map = []
     # print(data_split_labels_map)
     # ['-', '-Chosen-', '-[SiLeNtp0is0n]-', '-quik', '-tmh-',...]
     for word in data_split_labels_map:
         # here can change the number of the least data ...
-        if (int(dict[word]) < less_data):
-            sum = sum + 1
+        if int(word_ict[word]) < less_data:
+            sum_flag = sum_flag + 1
             one_dict.append(word)
         else:
             new_data_split_labels_map.append(word)
@@ -104,33 +105,33 @@ def get_one_author_data():
     print(len(one_dict))  # 2058
     print(len(new_data_split_labels_map))  # 569
     # print(data_split_labels.reset_index(drop=True))
-    writedata("new_labels_map.csv", new_data_split_labels_map)
+    write_data("new_labels_map.csv", new_data_split_labels_map)
 
     # debug
     print("===============================")
-    print(sum)  # 2058
+    print(sum_flag)  # 2058
     # print(len(one_dict))
     # print(max(list_one))
     # print(list(list_one))
     print("===============================")
     # print(data_split_labels)
 
-    pruned_data = load_data()
-    # print(pruned_data['Author'])
-    pruned_author = pruned_data['Author']
-    sum = 0
+    pruned_data_tmp = load_data()
+    # print(pruned_data_tmp['Author'])
+    pruned_author = pruned_data_tmp['Author']
+    sum_flag = 0
     for i, author in enumerate(pruned_author):
-        if(author not in new_data_split_labels_map):
-            sum = sum + 1
-            pruned_data.iloc[i, 0] = 'myclassfiy'
+        if author not in new_data_split_labels_map:
+            sum_flag = sum_flag + 1
+            pruned_data_tmp.iloc[i, 0] = 'myclassfiy'
             # print(i)
-            # print(pruned_data['Author'][i])
-    print(type(pruned_data['Author']))
-    # print(sum)  #3926
-    # print(pruned_data.loc[:, ['Author', 'URL']])
+            # print(pruned_data_tmp['Author'][i])
+    print(type(pruned_data_tmp['Author']))
+    # print(sum_flag)  #3926
+    # print(pruned_data_tmp.loc[:, ['Author', 'URL']])
     # print(i)  #45812
-    # print(pruned_data)
-    pruned_data_v1 = pruned_data.loc[:, ['Author', 'URL']]
+    # print(pruned_data_tmp)
+    pruned_data_v1 = pruned_data_tmp.loc[:, ['Author', 'URL']]
     pruned_data_v1.to_csv("../data/data_v1/xss.csv", index=False, sep=',')
     return pruned_data_v1
 
@@ -181,9 +182,9 @@ def train_d2v(urls, load=False, save_model=False, save_data=False):
             encoded_urls: <pandas.DataFrame>
             model: <class 'gensim.models.doc2vec.Doc2Vec'>
     """
-    DATA_DIR = "../data/data_v1"
-    model_out_path = os.path.join(DATA_DIR, "word2vec.model")
-    data_out_path = os.path.join(DATA_DIR, "train.csv")
+    data_dir_tmp = "../data/data_v1"
+    model_out_path = os.path.join(data_dir_tmp, "word2vec.model")
+    data_out_path = os.path.join(data_dir_tmp, "train.csv")
     model = None
     if load and os.path.exists(model_out_path):
         model = gensim.models.Doc2Vec.load(model_out_path)
@@ -192,14 +193,14 @@ def train_d2v(urls, load=False, save_model=False, save_data=False):
     if not model:
         # if model not loaded/exist, re-train the Doc2Vec model
         # construct training data for `doc2vec`
-        X_training = []
+        x_training = []
         for idx, url in enumerate(urls):
             document = gensim.models.doc2vec.TaggedDocument(url, tags=[idx])
-            X_training.append(document)
+            x_training.append(document)
 
         print("[info] Training word2vec model...")
-        model = gensim.models.Doc2Vec(X_training, min_count=1, workers=4)
-        model.train(X_training, total_examples=model.corpus_count, epochs=10)
+        model = gensim.models.Doc2Vec(x_training, min_count=1, workers=4)
+        model.train(x_training, total_examples=model.corpus_count, epochs=10)
 
     # transfer urls to vector
     encoded_urls = []
@@ -224,9 +225,9 @@ def encode_authors(authors, save_data=False):
     """
         encode authors by one-hot encoding
     """
-    DATA_DIR = "../data/data_v1"
-    map_out_path = os.path.join(DATA_DIR, "labels_map.csv")
-    data_out_path = os.path.join(DATA_DIR, "labels.csv")
+    data_dir_tmp = "../data/data_v1"
+    map_out_path = os.path.join(data_dir_tmp, "labels_map.csv")
+    data_out_path = os.path.join(data_dir_tmp, "labels.csv")
 
     encoder = LabelEncoder()
     encoder.fit(authors)  # fit model
@@ -246,11 +247,10 @@ def encode_authors(authors, save_data=False):
     return encoded_data
 
 
-def writedata(file_path_, data_split_labels):
-    global DATA_DIR
-    DATA_DIR = "../data/data_v1"
-    mirror_urls_file = file_path_
-    file_path = os.path.join(DATA_DIR, mirror_urls_file)
+def write_data(file_path_, data_split_labels):
+    data_dir_tmp = "../data/data_v1"
+    mirror_urls_file_tmp = file_path_
+    file_path = os.path.join(data_dir_tmp, mirror_urls_file_tmp)
     f = open(file_path, 'w', encoding='utf8', newline='')
     for word in data_split_labels:
         f.write(word + "\n")
@@ -258,24 +258,24 @@ def writedata(file_path_, data_split_labels):
 
 
 def main():
-    global sess
-    global xs
-    global ys
-    global prediction
+    # global sess
+    # global xs
+    # global ys
+    # global prediction
     # learning rate
     # learning_rate = 0.01
     print("begin classify......")
     begin = time.time()
 
     # load data
-    pruned_data = get_one_author_data()
+    pruned_data_tmp = get_one_author_data()
 
-    # print(pruned_data['Author'])
-    # print(pruned_data['URL'])
+    # print(pruned_data_tmp['Author'])
+    # print(pruned_data_tmp['URL'])
 
     # parse urls data
-    assert 'URL' in pruned_data.columns, '`URL` must in columns'
-    pruned_urls = split_urls(pruned_data['URL'])
+    assert 'URL' in pruned_data_tmp.columns, '`URL` must in columns'
+    pruned_urls = split_urls(pruned_data_tmp['URL'])
 
     # trian word2vec
     encoded_urls, _ = train_d2v(
@@ -286,8 +286,8 @@ def main():
     )
 
     # parse author data
-    assert 'Author' in pruned_data.columns, '`Author` must in columns'
-    authors = encode_authors(pruned_data['Author'], save_data=True)
+    assert 'Author' in pruned_data_tmp.columns, '`Author` must in columns'
+    authors = encode_authors(pruned_data_tmp['Author'], save_data=True)
 
     # del unused vars
     del encoded_urls, authors
