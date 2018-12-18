@@ -91,7 +91,7 @@ model.compile(
 hist = model.fit(
     train_x,
     train_y,
-    epochs=2,
+    epochs=20,
     batch_size=128,
 )
 loss, accuracy = model.evaluate(test_x, test_y, batch_size=128)
