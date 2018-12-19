@@ -1,30 +1,42 @@
 # coding: utf-8
 import os
 import time
+
 import keras
+import matplotlib.pyplot as plt
 import numpy as np
+from config import Config
 from keras.layers import Dense
 from keras.models import Sequential
-# from keras.optimizers import SGD
 from keras.optimizers import RMSprop
-import matplotlib.pyplot as plt
-from keras.models import load_model
+# from keras.optimizers import SGD
+# from keras.models import load_model
 
 # from keras.layers import Activation
 # from keras.layers import Dropout
 
 # set global vars
-WORKING_DIR = os.path.split(os.path.realpath(__file__))[0]
-DATA_DIR = os.path.join(WORKING_DIR, '../data/data_v1')
-Result_dir = "../result"
-DATA_X_FILE = os.path.join(DATA_DIR, 'train.csv')
-DATA_Y_FILE = os.path.join(DATA_DIR, 'labels.csv')
-HIS_FILE = os.path.join(Result_dir, 'history.csv')
+# WORKING_DIR = os.path.split(os.path.realpath(__file__))[0]
+# DATA_DIR = os.path.join(WORKING_DIR, '../data/data_v1')
+# Result_dir = "../result"
+# DATA_X_FILE = os.path.join(DATA_DIR, 'train.csv')
+# DATA_Y_FILE = os.path.join(DATA_DIR, 'labels.csv')
+# HIS_FILE = os.path.join(Result_dir, 'history.csv')
+
+
+class BaselineConfig(Config):
+    """Configuration for the baseline training."""
+    NAME = "baseline"
+
+
+config = BaselineConfig()
+print(config.DATA_DIR)
+exit()
 
 # load training data
-x_data = np.loadtxt(DATA_X_FILE, dtype=float, delimiter=',')
+x_data = np.loadtxt(Config.DATA_X_FILE, dtype=float, delimiter=',')
 
-pre_y_data = np.loadtxt(DATA_Y_FILE, dtype=int)
+pre_y_data = np.loadtxt(Config.DATA_Y_FILE, dtype=int)
 y_max = pre_y_data.max()
 y_data = keras.utils.to_categorical(              # one-hot
     pre_y_data,
@@ -97,7 +109,7 @@ hist = model.fit(
 loss, accuracy = model.evaluate(test_x, test_y, batch_size=128)
 print('\ntest loss: ', loss)
 print('\ntest accuracy: ', accuracy)
-with open(HIS_FILE, 'a', encoding='UTF-8', newline="") as f:
+with open(Config.HIS_FILE, 'a', encoding='UTF-8', newline="") as f:
     f.write(str(hist.history) + "\n")
     f.close()
 
@@ -115,26 +127,15 @@ plt.tight_layout()
 plt.show()
 # save result png
 now_name = time.strftime("%Y-%m-%d%H%M%S", time.localtime()) + "_acc-loss.png"
-Result_png = os.path.join(Result_dir, now_name)
+Result_png = os.path.join(Config.RESULT_DIR, now_name)
 fig.savefig(Result_png)
 
 # save
-Result_mode = os.path.join(Result_dir, now_name) + "_model.h5"
+Result_mode = os.path.join(Config.RESULT_DIR, now_name) + "_model.h5"
 
-model.save(Result_mode)   # HDF5 file, you have to pip3 install h5py if don't have it
+# HDF5 file, you have to pip3 install h5py if don't have it
+model.save(Result_mode)
 # del model  # deletes the existing model
 
 # # load
 # model = load_model(Result_mode)
-
-"""
-# other save method
-# save and load weights
-model.save_weights('my_model_weights.h5')
-model.load_weights('my_model_weights.h5')
-
-# save and load fresh network without trained weights
-from keras.models import model_from_json
-json_string = model.to_json()
-model = model_from_json(json_string)
-"""
