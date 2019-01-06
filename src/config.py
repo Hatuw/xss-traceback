@@ -26,9 +26,9 @@ class Config(object):
     WORKING_DIR = os.path.split(os.path.realpath(__file__))[0]
 
     # define data sotre path
-    DATA_DIR = os.path.join(WORKING_DIR, '../data/data_v1')
+    DATA_DIR = os.path.join(WORKING_DIR, '../data')
     # define data(x) file and labels(y) file
-    DATA_X_FILE = os.path.join(DATA_DIR, 'train.cs`v')
+    DATA_X_FILE = os.path.join(DATA_DIR, 'train.csv')
     DATA_Y_FILE = os.path.join(DATA_DIR, 'labels.csv')
 
     # define result dir and history dir
