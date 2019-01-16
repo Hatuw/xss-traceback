@@ -9,13 +9,13 @@ import gensim
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder
+
 warnings.filterwarnings(action='ignore', category=UserWarning, module='gensim')
 
 logging.basicConfig(
     format='%(asctime)s : %(levelname)s : %(message)s',
     level=logging.INFO,
 )
-
 
 # set global vars
 data_dir = '../data'
@@ -59,6 +59,16 @@ def load_data():
           .format(shape_bf - shape_af, shape_af))
 
     return pruned_data
+
+
+def write_data(file_path_, data_split_labels):
+    data_dir_tmp = "../data/data_v1"
+    mirror_urls_file_tmp = file_path_
+    file_path = os.path.join(data_dir_tmp, mirror_urls_file_tmp)
+    f = open(file_path, 'w', encoding='utf8', newline='')
+    for word in data_split_labels:
+        f.write(word + "\n")
+    f.close()
 
 
 def get_one_author_data():
@@ -106,15 +116,6 @@ def get_one_author_data():
     print(len(new_data_split_labels_map))  # 569
     # print(data_split_labels.reset_index(drop=True))
     write_data("new_labels_map.csv", new_data_split_labels_map)
-
-    # debug
-    print("===============================")
-    print(sum_flag)  # 2058
-    # print(len(one_dict))
-    # print(max(list_one))
-    # print(list(list_one))
-    print("===============================")
-    # print(data_split_labels)
 
     pruned_data_tmp = load_data()
     # print(pruned_data_tmp['Author'])
@@ -247,43 +248,28 @@ def encode_authors(authors, save_data=False):
     return encoded_data
 
 
-def write_data(file_path_, data_split_labels):
-    data_dir_tmp = "../data/data_v1"
-    mirror_urls_file_tmp = file_path_
-    file_path = os.path.join(data_dir_tmp, mirror_urls_file_tmp)
-    f = open(file_path, 'w', encoding='utf8', newline='')
-    for word in data_split_labels:
-        f.write(word + "\n")
-    f.close()
-
-
 def main():
-    # global sess
-    # global xs
-    # global ys
-    # global prediction
-    # learning rate
-    # learning_rate = 0.01
+    # low_classify = 1,Reduce the number of categories
+    low_classify = 1
     print("begin classify......")
     begin = time.time()
 
     # load data
-    pruned_data_tmp = get_one_author_data()
+    if low_classify == 1:
+        pruned_data_tmp = get_one_author_data()
+    else:
 
-    # print(pruned_data_tmp['Author'])
-    # print(pruned_data_tmp['URL'])
+        pruned_data_tmp = load_data()
 
     # parse urls data
     assert 'URL' in pruned_data_tmp.columns, '`URL` must in columns'
     pruned_urls = split_urls(pruned_data_tmp['URL'])
 
     # trian word2vec
-    encoded_urls, _ = train_d2v(
-        pruned_urls,
-        load=True,
-        save_model=True,
-        save_data=True,
-    )
+    encoded_urls, _ = train_d2v(pruned_urls,
+                                load=True,
+                                save_model=True,
+                                save_data=True)
 
     # parse author data
     assert 'Author' in pruned_data_tmp.columns, '`Author` must in columns'
