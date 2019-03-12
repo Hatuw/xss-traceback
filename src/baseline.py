@@ -20,7 +20,7 @@ from keras.optimizers import RMSprop
 # DATA_DIR = os.path.join(WORKING_DIR, '../data/data_v1')
 # Result_dir = "../result"
 # DATA_X_FILE = os.path.join(DATA_DIR, 'train.csv')
-# DATA_Y_FILE = os.path.join(DATA_DIR, 'labels.csv')
+# DATA_Y_FILE = os.path.join(DATA_DIR, '')
 # HIS_FILE = os.path.join(Result_dir, 'history.csv')
 
 
@@ -31,7 +31,7 @@ class BaselineConfig(Config):
 
 config = BaselineConfig()
 print(config.DATA_DIR)
-exit()
+# exit()
 
 # load training data
 x_data = np.loadtxt(Config.DATA_X_FILE, dtype=float, delimiter=',')
@@ -43,16 +43,6 @@ y_data = keras.utils.to_categorical(              # one-hot
     num_classes=y_max+1,
 )
 
-# # debug
-print("======================================")
-# print(len(set(pre_y_data)))
-# print(type(pre_y_data))
-print(y_max)
-print(y_data.shape[0])
-# print(y_data.shape[-1])
-print("======================================")
-
-
 # shuffle data and split training set & testing set
 data_m = y_data.shape[0]
 index = np.arange(data_m)
@@ -61,7 +51,7 @@ train_x = x_data[index[:int(data_m*0.8)]]
 train_y = y_data[index[:int(data_m*0.8)]]
 test_x = x_data[index[int(data_m*0.8):]]
 test_y = y_data[index[int(data_m*0.8):]]
-
+print(x_data.shape[-1])
 # create model
 model = Sequential()
 model.add(Dense(
@@ -91,7 +81,7 @@ model.add(Dense(
     activation='softmax',
     input_dim=1000,
 ))
-
+print(y_data.shape[-1])
 # sgd = SGD(lr=0.3, decay=1e-6, momentum=0.9, nesterov=True)
 rmsprop = RMSprop(lr=0.001, rho=0.9, epsilon=1e-08, decay=0.0)
 model.compile(

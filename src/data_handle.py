@@ -42,9 +42,9 @@ def load_data():
     data = pd.read_csv(file_path)
     # get data columns
     columns = data.columns
-    if 'Author' in columns and 'URL' in columns:
-        # extract `Author` and `URL` from data
-        pruned_data = data.loc[:, ['Author', 'URL']]
+    if 'Author' in columns and 'URL' in columns and 'Pagerank' in columns:
+        # extract `Author` and `URL` and `Pagerank` from data
+        pruned_data = data.loc[:, ['Author', 'URL', 'Pagerank']]
     else:
         exit(1)
 
@@ -53,6 +53,7 @@ def load_data():
     print("[info] Total loaded {} lines of data.".format(shape_bf))
 
     pruned_data.dropna(inplace=True)
+    pruned_data = pruned_data.reset_index(drop=True)  # 重新设置索引
 
     shape_af = pruned_data.shape[0]
     print("[info] Remove {} lines of (nan) data, Validated {} lines of data."
@@ -137,7 +138,7 @@ def get_one_author_data():
     return pruned_data_v1
 
 
-def split_urls(urls):
+def split_urls(urls, pagerank):
     """
         split urls
         params:
@@ -149,7 +150,6 @@ def split_urls(urls):
 
     # remove domain
     fix_urls = [re.split('/', url, 3)[-1] for url in urls]
-
     for idx, url in enumerate(fix_urls):
         # split %xx
         tmp_url = re.split(r'(%\w{2})', url)
@@ -157,7 +157,7 @@ def split_urls(urls):
         fix_urls[idx] = tmp_url
 
         # split symbol
-        tmp_fixed_url = []
+        tmp_fixed_url = [str(pagerank[idx])]
         for item in fix_urls[idx]:
             if not re.match(r'%\w{2}', item):
                 for re_result in re.split(r'(\W)', item):
@@ -250,7 +250,7 @@ def encode_authors(authors, save_data=False):
 
 def main():
     # low_classify = 1,Reduce the number of categories
-    low_classify = 1
+    low_classify = 0
     print("begin classify......")
     begin = time.time()
 
@@ -263,8 +263,8 @@ def main():
 
     # parse urls data
     assert 'URL' in pruned_data_tmp.columns, '`URL` must in columns'
-    pruned_urls = split_urls(pruned_data_tmp['URL'])
-
+    np.isnan(pruned_data_tmp['Pagerank'])
+    pruned_urls = split_urls(pruned_data_tmp['URL'], pruned_data_tmp['Pagerank'])
     # trian word2vec
     encoded_urls, _ = train_d2v(pruned_urls,
                                 load=True,

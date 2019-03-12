@@ -8,3 +8,7 @@ result/*
 
 .ipynb_checkpoints
 __pycache__
+
+
+src/handle.py
+src/automl.py
