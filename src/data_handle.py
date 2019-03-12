@@ -63,7 +63,7 @@ def load_data():
 
 
 def write_data(file_path_, data_split_labels):
-    data_dir_tmp = "../data/data_v1"
+    data_dir_tmp = "../data"
     mirror_urls_file_tmp = file_path_
     file_path = os.path.join(data_dir_tmp, mirror_urls_file_tmp)
     f = open(file_path, 'w', encoding='utf8', newline='')
@@ -183,7 +183,7 @@ def train_d2v(urls, load=False, save_model=False, save_data=False):
             encoded_urls: <pandas.DataFrame>
             model: <class 'gensim.models.doc2vec.Doc2Vec'>
     """
-    data_dir_tmp = "../data/data_v1"
+    data_dir_tmp = "../data"
     model_out_path = os.path.join(data_dir_tmp, "word2vec.model")
     data_out_path = os.path.join(data_dir_tmp, "train.csv")
     model = None
@@ -226,7 +226,7 @@ def encode_authors(authors, save_data=False):
     """
         encode authors by one-hot encoding
     """
-    data_dir_tmp = "../data/data_v1"
+    data_dir_tmp = "../data"  # change_dir
     map_out_path = os.path.join(data_dir_tmp, "labels_map.csv")
     data_out_path = os.path.join(data_dir_tmp, "labels.csv")
 
