@@ -9,6 +9,9 @@ import gensim
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder
+import collections
+import math
+import matplotlib.pyplot as plt
 
 warnings.filterwarnings(action='ignore', category=UserWarning, module='gensim')
 
@@ -197,8 +200,10 @@ def train_d2v(urls, load=False, save_model=False, save_data=False):
         x_training = []
         for idx, url in enumerate(urls):
             document = gensim.models.doc2vec.TaggedDocument(url, tags=[idx])
+            # print("document")
+            # print(document)
             x_training.append(document)
-
+        # print(x_training)
         print("[info] Training word2vec model...")
         model = gensim.models.Doc2Vec(x_training, min_count=1, workers=4)
         model.train(x_training, total_examples=model.corpus_count, epochs=10)
@@ -250,30 +255,81 @@ def encode_authors(authors, save_data=False):
 
 def main():
     # low_classify = 1,Reduce the number of categories
-    low_classify = 0
     print("begin classify......")
     begin = time.time()
 
     # load data
-    if low_classify == 1:
-        pruned_data_tmp = get_one_author_data()
-    else:
+    pruned_data_tmp = load_data()
 
-        pruned_data_tmp = load_data()
+    # Screening of the author
+    author_data = pruned_data_tmp['Author']
+    author_data_list = author_data.tolist()
+    frequent_ = collections.Counter(author_data_list)
+
+    dic = sorted(frequent_.items(), key=lambda asd: asd[1], reverse=True)
+
+    # print("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+    # print(frequent_)
+    # print(frequent_.items())
+    # print(type(frequent_))
+    # print(type(dic))
+    # print(dic)
+    # print(type(dic))
+    # print("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+
+    # 将已排序列表包含的元组进行分离
+    yob = []  # 作者
+    num_ = []  # 数量
+    low100author = 0  # 小于100的作者
+
+    for key, value in dic:
+        if value < 10:
+            low100author = low100author + 1
+        else:
+            yob.append(key)
+            num_.append(math.log(value))
+        # print(key)
+        # yob.append(key)
+        # num_.append(math.log(value))
+
+    # yob.append('low100author')
+    # num_.append(low100author)
+    print("low100author = " + str(low100author))
+    print(yob)
+    print(num_)
+    # range(len(yob))表示很横坐标的范围，num表示柱状图数值，tick_label表示横坐标标签
+    plt.bar(range(len(yob)), num_)  # , tick_label=yob)
+    plt.title('Attacker frequency histogram')
+    plt.show()
+
+    # get trian data after handle
+    # print(pruned_data_tmp)
+    pruned_data = pd.DataFrame(columns=['Author', 'URL', 'Pagerank'])
+    for value in yob:
+        df_tmp = pruned_data_tmp[pruned_data_tmp['Author'] == value]
+        pruned_data = pd.concat([pruned_data, df_tmp], axis=0)
+
+    print(len(pruned_data_tmp))
+    print(len(pruned_data))
+    pruned_data = pruned_data.reset_index(drop=True)  # 重新设置索引
 
     # parse urls data
-    assert 'URL' in pruned_data_tmp.columns, '`URL` must in columns'
-    np.isnan(pruned_data_tmp['Pagerank'])
-    pruned_urls = split_urls(pruned_data_tmp['URL'], pruned_data_tmp['Pagerank'])
+    assert 'URL' in pruned_data.columns, '`URL` must in columns'
+    # np.isnan(pruned_data['Pagerank'])
+    pruned_urls = split_urls(pruned_data['URL'], pruned_data['Pagerank'])
+    # print(pruned_urls[15])
+
     # trian word2vec
     encoded_urls, _ = train_d2v(pruned_urls,
                                 load=True,
                                 save_model=True,
                                 save_data=True)
+    # print("encoded_urls[3] = ")
+    # print(encoded_urls.loc[15, :])
 
     # parse author data
-    assert 'Author' in pruned_data_tmp.columns, '`Author` must in columns'
-    authors = encode_authors(pruned_data_tmp['Author'], save_data=True)
+    assert 'Author' in pruned_data.columns, '`Author` must in columns'
+    authors = encode_authors(pruned_data['Author'], save_data=True)
 
     # del unused vars
     del encoded_urls, authors

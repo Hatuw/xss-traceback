@@ -14,7 +14,7 @@ logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s',
 
 
 # set global vars
-DATA_DIR = '../data'
+DATA_DIR = '../../data'
 # mirror_urls_file = 'mirror_demo.csv'  # toy dataset
 mirror_urls_file = 'train.csv'  # train full dataset
 
@@ -153,7 +153,7 @@ def get_one_author_data():
     index = {}  # all labels
     result = {}  # one labels index in range(45813)
 
-    data = open("../data/vocabulary", 'r', encoding='UTF-8')
+    data = open("../../data/vocabulary", 'r', encoding='UTF-8')
     for i in range(64461):
         word = data.readline()
         word_split_len = len(word.split(" "))
@@ -162,7 +162,7 @@ def get_one_author_data():
         else:
             continue
 
-    data = open("../data/labels_map.csv", 'r', encoding='UTF-8')
+    data = open("../../data/labels_map.csv", 'r', encoding='UTF-8')
     big_data = data.read()
     data_split_labels_map = big_data.split("\n")
     del data_split_labels_map[-1]  # 最后一行是回车
@@ -176,7 +176,7 @@ def get_one_author_data():
     # print(one_dict)
             # print("win...")
 
-    data = open("../data/labels.csv", 'r', encoding='UTF-8')
+    data = open("../../data/labels.csv", 'r', encoding='UTF-8')
     labels_data = data.read()
     data_split_labels = labels_data.split("\n")
     del data_split_labels[-1]   # 最后一行是回车
